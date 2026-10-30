@@ -4,7 +4,13 @@ import android.content.Context
 import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -50,7 +56,9 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -83,7 +91,10 @@ fun Context.toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_
 
 val Pill = RoundedCornerShape(percent = 50)
 
-/** Chunky cartoon text: a thick outline behind a solid or gradient fill. */
+/**
+ * Chunky 3D cartoon text, like the painted titles: a dark extruded base under a thick outline,
+ * a gradient fill, and a glossy shine across the top. Small labels pass `shadow = false` for a flat outline.
+ */
 @Composable
 fun OutlinedText(
     text: String,
@@ -97,6 +108,7 @@ fun OutlinedText(
     letterSpacing: TextUnit = TextUnit.Unspecified,
     shadow: Boolean = true,
     maxLines: Int = Int.MAX_VALUE,
+    depth: Dp = if (shadow) outlineWidth * 0.9f else 0.dp,
 ) {
     val strokePx = with(LocalDensity.current) { (outlineWidth * 2).toPx() }
     val base = TextStyle(
@@ -107,22 +119,37 @@ fun OutlinedText(
         lineHeight = lineHeight,
         letterSpacing = letterSpacing,
     )
-    Box(modifier) {
-        Text(
-            text,
-            maxLines = maxLines,
-            style = base.copy(
-                color = outline,
-                drawStyle = Stroke(width = strokePx, join = StrokeJoin.Round),
-                shadow = if (shadow) Shadow(Color(0x55000000), Offset(0f, strokePx * 0.6f), strokePx) else null,
-            ),
-        )
+    val stroke = base.copy(color = outline, drawStyle = Stroke(width = strokePx, join = StrokeJoin.Round))
+    Box(modifier.padding(bottom = depth)) {
+        if (depth > 0.dp) {
+            Text(
+                text,
+                Modifier.offset(y = depth),
+                maxLines = maxLines,
+                style = stroke.copy(
+                    color = outline.darken(0.55f),
+                    shadow = Shadow(Color(0x66000000), Offset(0f, strokePx * 0.5f), strokePx * 1.2f),
+                ),
+            )
+        }
+        Text(text, maxLines = maxLines, style = stroke)
         Text(text, maxLines = maxLines, style = base.copy(brush = fill))
+        if (shadow) {
+            Text(text, maxLines = maxLines, style = base.copy(brush = Gloss))
+        }
     }
 }
 
-val GoldFill = Brush.verticalGradient(listOf(PV.GoldLight, PV.GoldDeep))
-val WhiteFill = Brush.verticalGradient(listOf(Color.White, Color(0xFFE2D6FF)))
+private val Gloss = Brush.verticalGradient(
+    0f to Color.White.copy(alpha = 0.55f),
+    0.42f to Color.White.copy(alpha = 0.12f),
+    0.43f to Color.Transparent,
+)
+
+fun Color.darken(factor: Float) = copy(red = red * factor, green = green * factor, blue = blue * factor)
+
+val GoldFill = Brush.verticalGradient(0f to Color(0xFFFFF6A8), 0.45f to Color(0xFFFFD42E), 1f to Color(0xFFFF9410))
+val WhiteFill = Brush.verticalGradient(0f to Color.White, 0.5f to Color(0xFFF3EDFF), 1f to Color(0xFFC4B0FF))
 
 enum class ButtonStyle(val top: Color, val bottom: Color, val edge: Color, val text: Color, val outline: Color?) {
     Green(Color(0xFF72EC52), Color(0xFF22B03A), Color(0xFF138A2C), Color.White, Color(0xFF0F7A28)),
@@ -152,13 +179,17 @@ fun ChunkyButton(
         modifier
             .height(height)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .shadow(4.dp, Pill)
+            .shadow(5.dp, Pill)
+            .clip(Pill)
+            .background(s.edge.darken(0.8f))
+            .clickable(source, indication = null, enabled = enabled, onClick = onClick)
+            .padding(start = 1.5.dp, end = 1.5.dp, top = 1.5.dp)
             .clip(Pill)
             .background(s.edge)
-            .clickable(source, indication = null, enabled = enabled, onClick = onClick)
-            .padding(bottom = 4.dp)
+            .padding(bottom = 4.5.dp)
             .clip(Pill)
-            .background(Brush.verticalGradient(listOf(s.top, s.bottom))),
+            .background(Brush.verticalGradient(listOf(s.top, s.top, s.bottom)))
+            .border(1.dp, Color.White.copy(alpha = 0.35f), Pill),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -168,7 +199,7 @@ fun ChunkyButton(
                 .fillMaxWidth(0.86f)
                 .fillMaxHeight(0.4f)
                 .clip(Pill)
-                .background(Color.White.copy(alpha = 0.22f)),
+                .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.08f)))),
         )
         Row(
             Modifier.padding(horizontal = 14.dp),
@@ -202,7 +233,7 @@ fun ButtonLabel(text: String, style: ButtonStyle, fontSize: TextUnit, lineHeight
     if (outline == null) {
         Text(text, color = style.text, fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = lineHeight)
     } else {
-        OutlinedText(text, fontSize, fill = SolidColor(style.text), outline = outline, outlineWidth = 1.5.dp, shadow = false, lineHeight = lineHeight)
+        OutlinedText(text, fontSize, fill = SolidColor(style.text), outline = outline, outlineWidth = 1.5.dp, shadow = false, lineHeight = lineHeight, depth = 1.5.dp)
     }
 }
 
@@ -291,26 +322,57 @@ fun Crown(modifier: Modifier = Modifier) {
     }
 }
 
-/** The Playverse wordmark: crown, "Play" in gold, "verse" in white, gamepad underneath. */
+/** The Playverse wordmark: crown, "Play" in gold, "verse" in white, gold gamepad underneath. */
 @Composable
 fun PlayverseLogo(fontSize: TextUnit, modifier: Modifier = Modifier) {
     val unit = with(LocalDensity.current) { fontSize.toDp() }
+    val outline = unit * 0.18f
+    val spacing = (-0.03).em(fontSize)
+    // Two identical rows: the first lays down one shared plaque, the second the fills on top,
+    // so neither word's outline covers the other's letters.
+    @Composable
+    fun Word(plaque: Boolean) = Row(Modifier.padding(top = unit * 0.46f)) {
+        val clear = SolidColor(Color.Transparent)
+        OutlinedText("Play", fontSize, fill = if (plaque) clear else GoldFill, outline = if (plaque) TitleOutline else Color.Transparent, outlineWidth = outline, letterSpacing = spacing, depth = if (plaque) outline * 0.9f else 0.dp)
+        OutlinedText("verse", fontSize, Modifier.offset(x = -unit * 0.1f), fill = if (plaque) clear else WhiteFill, outline = if (plaque) TitleOutline else Color.Transparent, outlineWidth = outline, letterSpacing = spacing, depth = if (plaque) outline * 0.9f else 0.dp)
+    }
     Box(modifier, contentAlignment = Alignment.TopCenter) {
-        Crown(Modifier.size(unit * 0.95f, unit * 0.7f))
-        Row(Modifier.padding(top = unit * 0.42f)) {
-            OutlinedText("Play", fontSize, fill = GoldFill, outlineWidth = unit * 0.09f, letterSpacing = (-0.02).em(fontSize))
-            OutlinedText("verse", fontSize, fill = WhiteFill, outlineWidth = unit * 0.09f, letterSpacing = (-0.02).em(fontSize))
-        }
-        Image(
-            painterResource(R.drawable.nav_games),
-            contentDescription = null,
-            modifier = Modifier
-                .padding(top = unit * 1.45f)
-                .offset(x = unit * 0.08f)
-                .size(unit * 0.62f, unit * 0.5f),
-        )
+        Sparkles(Modifier.matchParentSize())
+        Crown(Modifier.size(unit * 1.05f, unit * 0.78f))
+        Word(plaque = true)
+        Gamepad(Modifier.padding(top = unit * 1.38f).size(unit * 0.8f, unit * 0.52f))
+        Word(plaque = false)
     }
 }
+
+/** A chunky gold gamepad with a dark outline, tucked under the logo. */
+@Composable
+fun Gamepad(modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val body = Path().apply {
+            moveTo(w * 0.22f, h * 0.12f)
+            lineTo(w * 0.78f, h * 0.12f)
+            cubicTo(w * 0.98f, h * 0.12f, w * 1.02f, h * 0.95f, w * 0.86f, h * 0.95f)
+            cubicTo(w * 0.74f, h * 0.95f, w * 0.7f, h * 0.68f, w * 0.6f, h * 0.68f)
+            lineTo(w * 0.4f, h * 0.68f)
+            cubicTo(w * 0.3f, h * 0.68f, w * 0.26f, h * 0.95f, w * 0.14f, h * 0.95f)
+            cubicTo(-w * 0.02f, h * 0.95f, w * 0.02f, h * 0.12f, w * 0.22f, h * 0.12f)
+            close()
+        }
+        drawPath(body, TitleOutline, style = Stroke(h * 0.22f, join = StrokeJoin.Round))
+        drawPath(body, Brush.verticalGradient(listOf(Color(0xFFFFE877), Color(0xFFFFB300), Color(0xFFFF8F0A))))
+        val d = TitleOutline
+        drawRect(d, Offset(w * 0.17f, h * 0.36f), Size(w * 0.17f, h * 0.1f))
+        drawRect(d, Offset(w * 0.205f, h * 0.24f), Size(w * 0.1f, h * 0.34f))
+        drawCircle(d, h * 0.07f, Offset(w * 0.7f, h * 0.3f))
+        drawCircle(d, h * 0.07f, Offset(w * 0.79f, h * 0.45f))
+        drawCircle(d, h * 0.07f, Offset(w * 0.61f, h * 0.45f))
+    }
+}
+
+val TitleOutline = Color(0xFF2E0C82)
 
 private fun Double.em(fontSize: TextUnit): TextUnit = (fontSize.value * this).sp
 
@@ -388,52 +450,145 @@ fun PvToggle(checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier =
     }
 }
 
-/** A purple ribbon band with tails, drawn behind popup titles. */
+/** An arched ribbon banner with folded tails, drawn behind popup titles. */
 @Composable
 fun Ribbon(color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        val dark = color.copy(red = color.red * 0.62f, green = color.green * 0.62f, blue = color.blue * 0.62f)
+        val dark = color.darken(0.62f)
+        val light = color.copy(
+            red = (color.red * 1.3f).coerceAtMost(1f),
+            green = (color.green * 1.3f).coerceAtMost(1f),
+            blue = (color.blue * 1.3f).coerceAtMost(1f),
+        )
+        val arch = h * 0.16f
         fun tail(left: Boolean) = Path().apply {
-            val x0 = if (left) 0f else w
-            val x1 = if (left) w * 0.16f else w * 0.84f
-            moveTo(x0, h * 0.28f)
-            lineTo(x1, h * 0.18f)
-            lineTo(x1, h * 0.86f)
-            lineTo(x0, h * 0.96f)
-            lineTo(if (left) w * 0.06f else w * 0.94f, h * 0.62f)
+            fun x(f: Float) = if (left) w * f else w * (1 - f)
+            moveTo(x(0.17f), h * 0.3f)
+            lineTo(x(0f), h * 0.36f)
+            lineTo(x(0.07f), h * 0.66f)
+            lineTo(x(0f), h * 0.98f)
+            lineTo(x(0.17f), h * 0.9f)
             close()
         }
-        drawPath(tail(true), dark)
-        drawPath(tail(false), dark)
-        drawRoundRect(
-            Brush.verticalGradient(listOf(color, dark)),
-            Offset(w * 0.08f, h * 0.06f),
-            Size(w * 0.84f, h * 0.74f),
-            CornerRadius(h * 0.2f),
+        fun fold(left: Boolean) = Path().apply {
+            fun x(f: Float) = if (left) w * f else w * (1 - f)
+            moveTo(x(0.1f), h * 0.78f)
+            lineTo(x(0.17f), h * 0.9f)
+            lineTo(x(0.17f), h * 0.7f)
+            close()
+        }
+        for (left in listOf(true, false)) {
+            drawPath(tail(left), Brush.verticalGradient(listOf(color.darken(0.8f), dark)))
+            drawPath(tail(left), dark.darken(0.6f), style = Stroke(h * 0.035f, join = StrokeJoin.Round))
+        }
+        val band = Path().apply {
+            moveTo(w * 0.08f, h * 0.12f + arch)
+            quadraticTo(w * 0.5f, h * 0.12f - arch, w * 0.92f, h * 0.12f + arch)
+            lineTo(w * 0.92f, h * 0.78f + arch)
+            quadraticTo(w * 0.5f, h * 0.78f - arch, w * 0.08f, h * 0.78f + arch)
+            close()
+        }
+        drawPath(band, Brush.verticalGradient(listOf(light, color, dark), h * 0.0f, h * 0.9f))
+        val shine = Path().apply {
+            moveTo(w * 0.1f, h * 0.17f + arch)
+            quadraticTo(w * 0.5f, h * 0.17f - arch, w * 0.9f, h * 0.17f + arch)
+            lineTo(w * 0.9f, h * 0.29f + arch)
+            quadraticTo(w * 0.5f, h * 0.29f - arch, w * 0.1f, h * 0.29f + arch)
+            close()
+        }
+        drawPath(shine, Color.White.copy(alpha = 0.25f))
+        drawPath(band, dark.darken(0.6f), style = Stroke(h * 0.035f, join = StrokeJoin.Round))
+        drawPath(fold(true), dark.darken(0.5f))
+        drawPath(fold(false), dark.darken(0.5f))
+    }
+}
+
+/** Fat five-point gold star with a bevel, for flanking titles. */
+@Composable
+fun GoldStar(modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val r = size.minDimension / 2
+        val star = starPath(center, r, r * 0.5f)
+        drawPath(star, PV.GoldEdge, style = Stroke(r * 0.22f, join = StrokeJoin.Round))
+        drawPath(star, Brush.verticalGradient(listOf(Color(0xFFFFF3A0), Color(0xFFFFC21F), Color(0xFFFF9410))))
+        drawPath(starPath(center.copy(y = center.y - r * 0.12f), r * 0.5f, r * 0.24f), Color.White.copy(alpha = 0.35f))
+    }
+}
+
+/** A round or rounded-square icon badge with a glossy highlight, like the game's settings icons. */
+@Composable
+fun GlossyIcon(icon: ImageVector, top: Color, bottom: Color, size: Dp, modifier: Modifier = Modifier, round: Boolean = true) {
+    val shape = if (round) CircleShape else RoundedCornerShape(size * 0.26f)
+    Box(
+        modifier
+            .size(size)
+            .shadow(4.dp, shape)
+            .clip(shape)
+            .background(bottom.darken(0.7f))
+            .padding(bottom = 3.dp)
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(top, bottom)))
+            .border(2.dp, Color.White.copy(alpha = 0.55f), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = size * 0.08f)
+                .size(size * 0.62f, size * 0.3f)
+                .clip(Pill)
+                .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.55f), Color.White.copy(alpha = 0.05f)))),
         )
+        Icon(icon, null, tint = Color.White, modifier = Modifier.size(size * 0.58f))
     }
 }
 
 enum class PanelStyle { Purple, Dark }
 
-/** The rounded popup panel. Purple for rewards, dark navy with a gold rim for profile and results. */
+/**
+ * The rounded popup panel: a glowing rim around a glossy body. Purple for rewards,
+ * dark navy with a gold-to-pink rim for profile and results.
+ */
 @Composable
 fun Panel(style: PanelStyle, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(28.dp)
-    val (bg, rim) = when (style) {
-        PanelStyle.Purple -> Brush.verticalGradient(listOf(Color(0xFF4A24A8), Color(0xFF2E157A))) to
-            Brush.verticalGradient(listOf(PV.PurpleBright, Color(0xFF5B2FD0)))
-        PanelStyle.Dark -> Brush.verticalGradient(listOf(PV.Panel, PV.PanelDeep)) to
-            Brush.verticalGradient(listOf(Color(0xFFFFC266), Color(0xFFE0702A)))
+    val inner = RoundedCornerShape(25.dp)
+    val (bg, rim, glow) = when (style) {
+        PanelStyle.Purple -> Triple(
+            Brush.verticalGradient(listOf(Color(0xFF5A2DC0), Color(0xFF3A1A92), Color(0xFF2A1070))),
+            Brush.verticalGradient(listOf(Color(0xFFD9C4FF), Color(0xFF9A6BFF), Color(0xFF6A3BE0))),
+            Color(0xFFA98BFF),
+        )
+        PanelStyle.Dark -> Triple(
+            Brush.verticalGradient(listOf(Color(0xFF3A2580), PV.Panel, PV.PanelDeep)),
+            Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFFA445), Color(0xFFFF5E8A))),
+            Color(0xFFFF9A4A),
+        )
     }
     Column(
         modifier
-            .shadow(16.dp, shape)
+            .drawBehind {
+                // Soft outer glow, like light spilling off the rim.
+                for (i in 1..6) {
+                    val spread = i * 2.5.dp.toPx()
+                    drawRoundRect(
+                        glow.copy(alpha = 0.16f / i),
+                        Offset(-spread, -spread),
+                        Size(size.width + spread * 2, size.height + spread * 2),
+                        CornerRadius(28.dp.toPx() + spread),
+                        style = Stroke(2.5.dp.toPx()),
+                    )
+                }
+            }
+            .shadow(18.dp, shape)
             .clip(shape)
+            .background(rim)
+            .padding(3.dp)
+            .clip(inner)
             .background(bg)
-            .border(3.dp, rim, shape)
+            .border(1.5.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.Transparent, Color.Black.copy(alpha = 0.3f))), inner)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -450,7 +605,12 @@ fun InnerBox(
 ) {
     val shape = RoundedCornerShape(18.dp)
     Column(
-        modifier.clip(shape).background(PV.PanelInner).border(1.5.dp, border, shape).padding(12.dp),
+        modifier
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(PV.PanelInner.darken(0.85f), PV.PanelInner)))
+            .border(1.5.dp, border, shape)
+            .border(3.dp, Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.22f), Color.Transparent)), shape)
+            .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         content = content,
     )
@@ -497,16 +657,33 @@ fun RibbonTitle(
     crown: Boolean = true,
 ) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        if (ribbon != null) Ribbon(ribbon, Modifier.fillMaxWidth().fillMaxHeight(0.5f))
+        Box(
+            Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    val c = Offset(size.width / 2, size.height * 0.55f)
+                    drawCircle(Brush.radialGradient(listOf(Color(0x88FFC24A), Color.Transparent), c, size.width * 0.5f), size.width * 0.5f, c)
+                },
+        )
+        Sparkles(Modifier.fillMaxSize())
+        if (ribbon != null) {
+            Ribbon(ribbon, Modifier.fillMaxWidth().fillMaxHeight(0.52f).graphicsLayer { scaleX = 1.12f })
+        }
+        if (crown) {
+            GoldStar(Modifier.align(Alignment.TopStart).padding(start = 30.dp, top = 36.dp).size(34.dp).graphicsLayer { rotationZ = -14f })
+            GoldStar(Modifier.align(Alignment.TopEnd).padding(end = 30.dp, top = 36.dp).size(34.dp).graphicsLayer { rotationZ = 14f })
+        }
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 6.dp)) {
-            if (crown) Crown(Modifier.size(64.dp, 46.dp).offset(y = 10.dp))
+            if (crown) Crown(Modifier.size(84.dp, 60.dp).offset(y = 14.dp))
             lines.forEach { (text, fill) ->
                 OutlinedText(
                     text,
                     fontSize,
                     fill = fill,
-                    outlineWidth = 4.dp,
-                    lineHeight = fontSize * 1.0f,
+                    outline = TitleOutline,
+                    outlineWidth = 6.dp,
+                    depth = 5.dp,
+                    lineHeight = fontSize * 0.98f,
                     letterSpacing = (-0.5).sp,
                     maxLines = 1,
                 )
@@ -526,23 +703,74 @@ fun Art(@DrawableRes res: Int, modifier: Modifier = Modifier, crop: Boolean = fa
     )
 }
 
-/** Soft warm glows behind the top of the home screen, standing in for the cosy room background. */
-fun Modifier.roomGlow(): Modifier = drawBehind {
-    drawRect(
-        Brush.verticalGradient(
-            0f to Color(0xFF4E2462),
-            0.45f to Color(0xFF9C4A5E),
-            0.8f to Color(0xFFDB8558),
-            1f to Color(0xFFF0B07A),
-        ),
+/** The soft-focus game room behind every screen, dimmed by [dim] so content stays readable. */
+@Composable
+fun RoomBackdrop(modifier: Modifier = Modifier, dim: Color = Color.Transparent) {
+    Box(modifier) {
+        Image(
+            painterResource(R.drawable.bg_room),
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.TopCenter,
+        )
+        Box(Modifier.matchParentSize().background(dim))
+    }
+}
+
+/** Light rays fanning out from the centre, slowly turning, behind prize art. */
+@Composable
+fun Sunburst(modifier: Modifier = Modifier, color: Color = Color(0xFFFFD86B)) {
+    val turn by rememberInfiniteTransition(label = "rays").animateFloat(
+        0f,
+        360f,
+        infiniteRepeatable(tween(40_000, easing = LinearEasing)),
+        label = "turn",
     )
-    listOf(
-        Triple(0.12f, 0.25f, Color(0x55FFD27A)),
-        Triple(0.88f, 0.18f, Color(0x44FF9EC4)),
-        Triple(0.5f, 0.05f, Color(0x3390B8FF)),
-        Triple(0.3f, 0.75f, Color(0x44FFE0A0)),
-    ).forEach { (x, y, c) ->
-        val center = Offset(size.width * x, size.height * y)
-        drawCircle(Brush.radialGradient(listOf(c, Color.Transparent), center, size.width * 0.4f), size.width * 0.4f, center)
+    Canvas(modifier) {
+        val r = size.maxDimension * 0.75f
+        drawCircle(Brush.radialGradient(listOf(color.copy(alpha = 0.75f), color.copy(alpha = 0.2f), Color.Transparent), center, r * 0.7f), r * 0.7f)
+        rotate(turn) {
+            for (i in 0 until 16) {
+                val a0 = (i * 22.5 - 5) * PI / 180
+                val a1 = (i * 22.5 + 5) * PI / 180
+                val ray = Path().apply {
+                    moveTo(center.x, center.y)
+                    lineTo(center.x + (r * cos(a0)).toFloat(), center.y + (r * sin(a0)).toFloat())
+                    lineTo(center.x + (r * cos(a1)).toFloat(), center.y + (r * sin(a1)).toFloat())
+                    close()
+                }
+                drawPath(ray, Brush.radialGradient(listOf(color.copy(alpha = 0.32f), Color.Transparent), center, r * 0.85f))
+            }
+        }
+    }
+}
+
+/** Little four-point twinkles scattered around a title or prize. */
+@Composable
+fun Sparkles(modifier: Modifier = Modifier, color: Color = Color(0xFFFFE27A)) {
+    val pulse by rememberInfiniteTransition(label = "twinkle").animateFloat(
+        0.6f,
+        1f,
+        infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    Canvas(modifier) {
+        listOf(
+            Triple(0.08f, 0.3f, 0.05f), Triple(0.92f, 0.22f, 0.06f), Triple(0.16f, 0.82f, 0.035f),
+            Triple(0.86f, 0.78f, 0.04f), Triple(0.3f, 0.06f, 0.03f), Triple(0.72f, 0.04f, 0.035f),
+        ).forEachIndexed { i, (x, y, s) ->
+            val c = Offset(size.width * x, size.height * y)
+            val r = size.width * s * if (i % 2 == 0) pulse else 1.6f - pulse
+            val star = Path().apply {
+                moveTo(c.x, c.y - r)
+                quadraticTo(c.x, c.y, c.x + r * 0.7f, c.y)
+                quadraticTo(c.x, c.y, c.x, c.y + r)
+                quadraticTo(c.x, c.y, c.x - r * 0.7f, c.y)
+                quadraticTo(c.x, c.y, c.x, c.y - r)
+                close()
+            }
+            drawPath(star, if (i % 3 == 2) Color(0xFFD9B8FF) else color)
+        }
     }
 }

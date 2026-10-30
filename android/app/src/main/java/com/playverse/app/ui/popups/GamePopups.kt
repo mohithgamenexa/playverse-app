@@ -1,5 +1,12 @@
 package com.playverse.app.ui.popups
 
+import com.playverse.app.ui.components.Sunburst
+import com.playverse.app.ui.components.GoldStar
+import com.playverse.app.ui.components.TitleOutline
+import androidx.compose.ui.graphics.graphicsLayer
+import com.playverse.app.ui.components.GlossyIcon
+import com.playverse.app.ui.components.Sparkles
+import androidx.compose.ui.draw.scale
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -80,7 +87,7 @@ fun LevelUpPopup(fromLevel: Int, onCollect: () -> Unit) {
         PanelStyle.Dark,
         titleHeight = 220.dp,
         overlap = 70.dp,
-        title = { RibbonTitle(listOf("LEVEL" to GoldFill, "UP!" to WhiteFill), 58.sp, ribbon = RibbonRed) },
+        title = { RibbonTitle(listOf("LEVEL" to GoldFill, "UP!" to WhiteFill), 64.sp, ribbon = RibbonRed) },
     ) {
         OutlinedText("Congratulations!", 30.sp, fill = GoldFill, outline = Color(0xFF5A2A0A), outlineWidth = 2.dp)
         Text("You reached a new level!", color = Color(0xFFE6DDFF), fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -178,8 +185,10 @@ fun PausedPopup(player: Player, score: Int, onResume: () -> Unit, onEnd: () -> U
                         }
                     }
                 }
-                OutlinedText("PAUSED", 54.sp, Modifier.offset(y = (-10).dp), fill = GoldFill, outlineWidth = 4.dp)
+                OutlinedText("PAUSED", 60.sp, Modifier.offset(y = (-12).dp), fill = GoldFill, outline = TitleOutline, outlineWidth = 6.dp, depth = 5.dp)
             }
+            GoldStar(Modifier.align(Alignment.TopStart).padding(start = 64.dp, top = 22.dp).size(34.dp).graphicsLayer { rotationZ = -14f })
+            GoldStar(Modifier.align(Alignment.TopEnd).padding(end = 64.dp, top = 22.dp).size(34.dp).graphicsLayer { rotationZ = 14f })
         },
     ) {
         InnerBox(Modifier.fillMaxWidth()) {
@@ -215,10 +224,7 @@ fun PausedPopup(player: Player, score: Int, onResume: () -> Unit, onEnd: () -> U
 @Composable
 private fun ToggleRow(icon: ImageVector, top: Color, bottom: Color, label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(48.dp).clip(CircleShape).background(Brush.verticalGradient(listOf(top, bottom))).border(2.dp, Color.White.copy(alpha = 0.4f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) { Icon(icon, null, tint = Color.White, modifier = Modifier.size(28.dp)) }
+        GlossyIcon(icon, top, bottom, 50.dp)
         Text(label, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(start = 14.dp))
         PvToggle(checked, onChange)
     }
@@ -235,7 +241,11 @@ fun WatchVideoPopup(
 ) {
     Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Panel(PanelStyle.Purple, Modifier.fillMaxWidth().padding(top = 18.dp)) {
-            Art(hero, Modifier.fillMaxWidth(0.9f).aspectRatio(1.3f))
+            Box(Modifier.fillMaxWidth(0.9f).aspectRatio(1.3f)) {
+                Sunburst(Modifier.matchParentSize().scale(1.2f), color = Color(0xFFFFB0E0))
+                Art(hero, Modifier.matchParentSize())
+                Sparkles(Modifier.matchParentSize())
+            }
             InnerBox(Modifier.fillMaxWidth()) {
                 Text(line1, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 OutlinedText(line2, 36.sp, fill = GoldFill, outlineWidth = 3.dp, maxLines = 1)
@@ -267,7 +277,7 @@ fun GameOverPopup(card: ScoreCard, onDoubleCoins: () -> Unit, onNext: () -> Unit
         PanelStyle.Dark,
         titleHeight = 220.dp,
         overlap = 66.dp,
-        title = { RibbonTitle(listOf("GAME" to GoldFill, "OVER" to WhiteFill), 58.sp, ribbon = RibbonRed) },
+        title = { RibbonTitle(listOf("GAME" to GoldFill, "OVER" to WhiteFill), 62.sp, ribbon = RibbonRed) },
     ) {
         InnerBox(Modifier.fillMaxWidth()) {
             Text("SCORE CARD", color = Color(0xFFCFC6EE), fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp))

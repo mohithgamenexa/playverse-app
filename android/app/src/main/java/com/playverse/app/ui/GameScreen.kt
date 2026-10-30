@@ -51,7 +51,7 @@ import com.playverse.app.ui.components.OutlinedText
 import com.playverse.app.ui.components.Pill
 import com.playverse.app.ui.components.PopupHost
 import com.playverse.app.ui.components.fmt
-import com.playverse.app.ui.components.roomGlow
+import com.playverse.app.ui.components.RoomBackdrop
 import com.playverse.app.ui.components.toast
 import com.playverse.app.ui.popups.GameOverPopup
 import com.playverse.app.ui.popups.LevelUpPopup
@@ -76,7 +76,7 @@ fun GameScreen(player: Player, game: Game, onExit: () -> Unit, initialPopup: Gam
     val card = ScoreCard(base = 8_400, bonus = 2_600, multiplier = 3, multiplied = 9_000, timeBonus = 1_500, coins = 500)
 
     Box(Modifier.fillMaxSize().background(Color(0xFF241238))) {
-        Box(Modifier.fillMaxSize().roomGlow().background(Color(0xB0200F3A)))
+        RoomBackdrop(Modifier.fillMaxSize(), dim = Color(0x80200F3A))
         Column(
             Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

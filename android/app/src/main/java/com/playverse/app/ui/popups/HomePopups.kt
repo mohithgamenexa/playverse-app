@@ -1,5 +1,9 @@
 package com.playverse.app.ui.popups
 
+import com.playverse.app.ui.components.Sunburst
+import com.playverse.app.ui.components.GlossyIcon
+import com.playverse.app.ui.components.Sparkles
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,7 +97,7 @@ fun WelcomeBonusPopup(onClaim: () -> Unit, onClose: () -> Unit) {
         overlap = 60.dp,
         onClose = onClose,
         redClose = false,
-        title = { RibbonTitle(listOf("Welcome" to GoldFill, "BONUS" to WhiteFill), 50.sp) },
+        title = { RibbonTitle(listOf("Welcome" to GoldFill, "BONUS" to WhiteFill), 54.sp) },
     ) {
         Column(
             Modifier
@@ -106,7 +110,11 @@ fun WelcomeBonusPopup(onClaim: () -> Unit, onClose: () -> Unit) {
             Text("A special gift to", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold)
             Text("begin your journey!", color = PV.Gold, fontSize = 19.sp, fontWeight = FontWeight.Bold)
         }
-        Art(R.drawable.hero_welcome_chest, Modifier.fillMaxWidth().aspectRatio(720f / 425f))
+        Box(Modifier.fillMaxWidth().aspectRatio(720f / 425f)) {
+            Sunburst(Modifier.matchParentSize().scale(1.25f))
+            Art(R.drawable.hero_welcome_chest, Modifier.matchParentSize())
+            Sparkles(Modifier.matchParentSize())
+        }
         Row(
             Modifier
                 .fillMaxWidth(0.85f)
@@ -289,18 +297,7 @@ fun SettingsPopup(player: Player, onClose: () -> Unit) {
 private fun Chevron() = Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Color(0xFF7A80A8), modifier = Modifier.size(32.dp))
 
 @Composable
-private fun IconTile(icon: ImageVector, top: Color, bottom: Color, size: Int = 46) {
-    Box(
-        Modifier
-            .size(size.dp)
-            .shadow(2.dp, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
-            .background(Brush.verticalGradient(listOf(top, bottom))),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, null, tint = Color.White, modifier = Modifier.size((size * 0.58f).dp))
-    }
-}
+private fun IconTile(icon: ImageVector, top: Color, bottom: Color, size: Int = 46) = GlossyIcon(icon, top, bottom, size.dp, round = false)
 
 @Composable
 private fun SettingRow(

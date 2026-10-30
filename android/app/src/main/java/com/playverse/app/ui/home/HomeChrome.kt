@@ -74,7 +74,7 @@ fun TopBar(
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 8.dp)
-            .height(76.dp),
+            .height(84.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
@@ -100,7 +100,7 @@ fun TopBar(
         // The logo shrinks to fit narrow phones instead of running under the coins.
         BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             if (title == null) {
-                PlayverseLogo((maxWidth.value / 5f).coerceAtMost(26f).sp)
+                PlayverseLogo((maxWidth.value / 4.6f).coerceAtMost(30f).sp)
             } else {
                 OutlinedText(title, (maxWidth.value / 5.6f).coerceAtMost(28f).sp, fill = GoldFill, outlineWidth = 2.5.dp, maxLines = 1)
             }

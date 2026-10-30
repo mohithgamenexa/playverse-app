@@ -51,7 +51,7 @@ import com.playverse.app.ui.components.Panel
 import com.playverse.app.ui.components.PanelStyle
 import com.playverse.app.ui.components.RibbonTitle
 import com.playverse.app.ui.components.SelectedTick
-import com.playverse.app.ui.components.roomGlow
+import com.playverse.app.ui.components.RoomBackdrop
 import com.playverse.app.ui.components.fmt
 import com.playverse.app.ui.popups.Stat
 import com.playverse.app.ui.popups.StatDivider
@@ -62,7 +62,7 @@ import com.playverse.app.ui.theme.PV
 fun AccountScreen(player: Player, onBack: () -> Unit, onRename: () -> Unit, initialTab: Int = 0) {
     var tab by remember { mutableIntStateOf(initialTab) }
     Box(Modifier.fillMaxSize().background(Color(0xFF2A1640))) {
-        Box(Modifier.fillMaxSize().roomGlow().background(Color(0x99200F3A)))
+        RoomBackdrop(Modifier.fillMaxSize(), dim = Color(0x66200F3A))
         Column(Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 14.dp)) {
             Box(Modifier.fillMaxWidth().height(84.dp)) {
                 Box(

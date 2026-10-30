@@ -19,7 +19,7 @@ import com.playverse.app.data.Player
 import com.playverse.app.data.Task
 import com.playverse.app.data.TaskAction
 import com.playverse.app.ui.components.PopupHost
-import com.playverse.app.ui.components.roomGlow
+import com.playverse.app.ui.components.RoomBackdrop
 import com.playverse.app.ui.components.toast
 import com.playverse.app.ui.popups.DailyRewardsPopup
 import com.playverse.app.ui.popups.ProfilePopup
@@ -59,7 +59,7 @@ fun HomeScreen(
     }
 
     Box(Modifier.fillMaxSize().background(PV.Cream)) {
-        Box(Modifier.fillMaxWidth().height(330.dp).roomGlow())
+        RoomBackdrop(Modifier.fillMaxWidth().height(360.dp))
         Column(Modifier.fillMaxSize()) {
             TopBar(
                 player,
