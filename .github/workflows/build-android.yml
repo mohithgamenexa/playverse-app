@@ -1,0 +1,44 @@
+# Builds the Android APK on GitHub's servers whenever the Android app changes.
+# Download it from the "Actions" tab: open the latest run, then "playverse-apk".
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["android/**", ".github/workflows/build-android.yml"]
+  workflow_dispatch: # also lets you start a build by hand from the Actions tab
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true # a newer push replaces a build that's still running
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Caches Gradle downloads and build outputs, so builds after the first are much faster.
+      - uses: gradle/actions/setup-gradle@v4
+
+      # A debug build installs on any phone without a signing key. Switch to assembleRelease once one is set up.
+      - name: Build the APK
+        run: |
+          chmod +x gradlew   # files uploaded on github.com lose their executable flag
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: playverse-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
